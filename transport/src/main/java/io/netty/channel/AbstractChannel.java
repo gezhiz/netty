@@ -464,6 +464,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             AbstractChannel.this.eventLoop = eventLoop;
 
+            //inEventLoop 判断当前线程是否是eventLoop内部的线程，如果是，则直接执行
+            //何时inEventLoop是true？  一个eventLoop在执行注册Channel任务时，返回true
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
@@ -493,12 +495,14 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
+                //真正执行java nio注册的地方，交给子类实现
                 doRegister();
                 neverRegistered = false;
                 registered = true;
 
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
+                // 出发handlerAdd事件
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 safeSetSuccess(promise);
@@ -1065,6 +1069,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
     protected abstract SocketAddress remoteAddress0();
 
     /**
+     * 作为Channel注册到EventLoop上的流程中的一个步骤
      * Is called after the {@link Channel} is registered with its {@link EventLoop} as part of the register process.
      *
      * Sub-classes may override this method

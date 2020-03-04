@@ -120,6 +120,7 @@ import java.util.concurrent.TimeUnit;
  * make sure you do not call {@link #await()} in an I/O thread.  Otherwise,
  * {@link BlockingOperationException} will be raised to prevent a dead lock.
  *
+ * 不要把IO超时和等待超时混淆了
  * <h3>Do not confuse I/O timeout and await timeout</h3>
  *
  * The timeout value you specify with {@link #await(long)},
@@ -145,12 +146,13 @@ import java.util.concurrent.TimeUnit;
  *
  * // GOOD
  * {@link Bootstrap} b = ...;
- * // Configure the connect timeout option.
+ * // Configure the connect timeout option. 配置链接超时的时间
  * <b>b.option({@link ChannelOption}.CONNECT_TIMEOUT_MILLIS, 10000);</b>
  * {@link ChannelFuture} f = b.connect(...);
+ * //等待并且不相应中断
  * f.awaitUninterruptibly();
  *
- * // Now we are sure the future is completed.
+ * // Now we are sure the future is completed. 此时，future一定已经处理完成，哪怕链接超时了
  * assert f.isDone();
  *
  * if (f.isCancelled()) {
@@ -161,6 +163,8 @@ import java.util.concurrent.TimeUnit;
  *     // Connection established successfully
  * }
  * </pre>
+ *
+ * 支持完成回调
  */
 public interface ChannelFuture extends Future<Void> {
 

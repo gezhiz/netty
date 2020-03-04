@@ -60,6 +60,7 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
             new ConcurrentHashMap<ChannelHandlerContext, Boolean>());
 
     /**
+     * initChannel会在Channel注册后调用，这个方法调用之后，ChannelInitializer会从Pipeline中移除
      * This method will be called once the {@link Channel} was registered. After the method returns this instance
      * will be removed from the {@link ChannelPipeline} of the {@link Channel}.
      *
@@ -134,6 +135,7 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
             } finally {
                 ChannelPipeline pipeline = ctx.pipeline();
                 if (pipeline.context(this) != null) {
+                    //移除自己
                     pipeline.remove(this);
                 }
             }

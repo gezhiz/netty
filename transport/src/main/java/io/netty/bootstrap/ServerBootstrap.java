@@ -127,6 +127,10 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return this;
     }
 
+    /**
+     * 初始化channel对象
+     * @param channel
+     */
     @Override
     void init(Channel channel) {
         setChannelOptions(channel, newOptionsArray(), logger);

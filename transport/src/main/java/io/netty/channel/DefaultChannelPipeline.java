@@ -50,6 +50,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private static final String HEAD_NAME = generateName0(HeadContext.class);
     private static final String TAIL_NAME = generateName0(TailContext.class);
 
+    /**
+     * handler对象的名称缓存
+     */
     private static final FastThreadLocal<Map<Class<?>, String>> nameCaches =
             new FastThreadLocal<Map<Class<?>, String>>() {
         @Override
@@ -97,6 +100,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         tail = new TailContext(this);
         head = new HeadContext(this);
 
+        //使用链表数据结构
         head.next = tail;
         tail.prev = head;
     }
@@ -200,11 +204,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
             checkMultiplicity(handler);
-
+            //使用ChannelHandlerContext 包装了handler，重复添加同一个handler对象时，算多个handler
             newCtx = newContext(group, filterName(name, handler), handler);
 
+            //把newCtx插入链表作为tail前的一个元素
             addLast0(newCtx);
 
+            // channel未注册到时间循环中时，提那家一个任务，用来监听注册事件，并调用ChannelHandler.handlerAdded()方法
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
             // In this case we add the context to the pipeline and add a task that will call
             // ChannelHandler.handlerAdded(...) once the channel is registered.
@@ -220,6 +226,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
         }
+        //回调handler的handlerAdded() 方法
         callHandlerAdded0(newCtx);
         return this;
     }
@@ -385,6 +392,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     private String generateName(ChannelHandler handler) {
+        //获取当前对象的该实例
         Map<Class<?>, String> cache = nameCaches.get();
         Class<?> handlerType = handler.getClass();
         String name = cache.get(handlerType);
@@ -592,6 +600,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         oldCtx.next = newCtx;
     }
 
+    /**
+     * 标记handler对象已经添加过了，并且，如果handler对象不能添加多次，则报错
+     * @param handler
+     */
     private static void checkMultiplicity(ChannelHandler handler) {
         if (handler instanceof ChannelHandlerAdapter) {
             ChannelHandlerAdapter h = (ChannelHandlerAdapter) handler;
@@ -1103,7 +1115,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             registered = true;
 
             pendingHandlerCallbackHead = this.pendingHandlerCallbackHead;
-            // Null out so it can be GC'ed.
+            // Null out so it can be GC'ed.帮助gc，这个对象使用完后，就不需要了
             this.pendingHandlerCallbackHead = null;
         }
 
@@ -1117,6 +1129,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
     }
 
+    /**
+     * 准备好handler添加删除事件的任务, channelRegistered 方法会触发 invokeHandlerAddedIfNeeded()方法 去触发任务
+     * @param ctx
+     * @param added
+     */
     private void callHandlerCallbackLater(AbstractChannelHandlerContext ctx, boolean added) {
         assert !registered;
 
